@@ -5,17 +5,17 @@
 		{
 			"id": 1,
 			"name": "Bonus Level 1",
-			"timeLimit": 30,
-			"rockGainScore": 0,
-			"rocksNeeded": 0,
-			"rockReleaseTimer": 0,
-			"starNumbers": 0,
-			"rockNumbers": 0,
+			"timeLimit": 80,
+			"brickScore": 200,
+			"brickNumber": 2,
+			"brickRows": 2,
+			"starNumbers": 3,
+			"rockNumbers": 20,
 			"trashPileNumbers": 1,
-			"trashReleaseTimer": 2000,
+			"trashReleaseTimer": 15000,
 			"trashGainScore": 100,
-			"starScore": 0,
-			"starScoreExtraTime": 0
+			"starScore": 100,
+			"starScoreExtraTime": 10
 		}
 	]
   }

@@ -26,6 +26,7 @@ var theGame = function(game) {
     indicatedLevel = "0"; // ui display indicated level that the player is on
     currentLevel = "1"; // level user is currently on
     w = 800, h = 600; // height and width of screen size
+    levelData = "";
 
 
 
@@ -60,7 +61,7 @@ var theGame = function(game) {
     explosions = ""; // explosions on rock hits
     highScore = ""; // tell whether or not the player can move on to the next level
     
-    levelData = "";
+    
     bonusLevelData = ""; // level and bonus data gathered from json file
     shipSpecsData = ""; // ship specs from json file
     indexedLevel = 0; // level starting at zero in the array 
@@ -125,6 +126,12 @@ theGame.prototype = {
         // The scrolling starfield background
         starfield = this.game.add.tileSprite(0, 0, 800, 600, 'starfield');
 
+        levelData = JSON.parse(this.game.cache.getText('levels'));
+        console.log(levelData);
+
+        bonusLevelData = JSON.parse(this.game.cache.getText('bonusLevels'));
+        console.log(bonusLevelData);
+
         ballOnPaddle = true;
 
         // get the bricks ready
@@ -184,8 +191,7 @@ theGame.prototype = {
         trashReleaseTimer = this.game.time.create(false);
 
         // load json sheet level data
-        levelData = JSON.parse(this.game.cache.getText('levels'));
-        console.log(levelData);
+        
         // load json sheet bonus level data
         bonusLevelData = JSON.parse(this.game.cache.getText('bonusLevels'));
         console.log(bonusLevelData);
@@ -557,19 +563,33 @@ theGame.prototype = {
      *  Create the bricks
      *
      *******************************************************************************/
-    createBricks: function() {
+    createBricks: function(round) {
 
         var brick;
 
-        for (var y = 0; y < 4; y++)
-        {
-            for (var x = 0; x < 15; x++)
+        if (round == "bonus") {
+            for (var y = 0; y < bonusLevelData.bonuslevelsData.levels[bonusLevel].brickRows; y++)
             {
-                brick = bricks.create(120 + (x * 36), 100 + (y * 52), 'breakout', 'brick_' + (y+1) + '_1.png');
-                brick.body.bounce.set(1);
-                brick.body.immovable = true;
+                for (var x = 0; x < bonusLevelData.bonuslevelsData.levels[bonusLevel].brickNumber; x++)
+                {
+                    brick = bricks.create(120 + (x * 36), 100 + (y * 52), 'breakout', 'brick_' + (y+1) + '_1.png');
+                    brick.body.bounce.set(1);
+                    brick.body.immovable = true;
+                }
+            }
+        } else {
+            for (var y = 0; y < levelData.levelsData.levels[indexedLevel].brickRows; y++)
+            {
+                for (var x = 0; x < levelData.levelsData.levels[indexedLevel].brickNumber; x++)
+                {
+                    brick = bricks.create(120 + (x * 36), 100 + (y * 52), 'breakout', 'brick_' + (y+1) + '_1.png');
+                    brick.body.bounce.set(1);
+                    brick.body.immovable = true;
+                }
             }
         }
+
+        
     },
     /*******************************************************************************
      *
@@ -636,7 +656,7 @@ theGame.prototype = {
         brick.kill();
         ballHitItemSound.play();
 
-        score += 10;
+        score += levelData.levelsData.levels[indexedLevel].brickScore;
 
         scoreText.text = score;
 
@@ -656,7 +676,7 @@ theGame.prototype = {
         //scoreText.text = 'score: ' + score;
 
         //  Are they any bricks left?
-        if (bricks.countLiving() == 0)
+        if (bricks.countLiving() === 0)
         {
             //  New level starts
             score += 1000;
@@ -669,8 +689,7 @@ theGame.prototype = {
             ball.x = paddle.x + 16;
             ball.y = paddle.y - 16;
 
-            //  And bring the bricks back from the dead :)
-            bricks.callAll('revive');
+            this.gameEnd();
         }
     },
     /*******************************************************************************
@@ -1175,7 +1194,7 @@ theGame.prototype = {
         scoreText.text = score;
 
         // check to see if the user is going to be able to move on from this next level
-        if (remainingLives != 0 && rocksYouCollected >= levelData.levelsData.levels[indexedLevel].rocksNeeded) {
+        if (lives != 0) {
 
             nextLevelSound.play();
             indexedLevel += 1; // levels get progressively harder
@@ -1188,7 +1207,7 @@ theGame.prototype = {
             } else {
 
                 // send user to bonus round if they have at least three lives, a good score, and there is a bonus level available
-                if (remainingLives >= 1 && indexedLevel == 3 && bonusLevel != bonusLevelData.bonuslevelsData.levels.length) {
+                if (lives >= 1 && indexedLevel == 1 && bonusLevel != bonusLevelData.bonuslevelsData.levels.length) {
                     indexedLevel -= 1; // level stays the same because of bonus round
 
                     highScore = this.game.add.text(w / 2, h / 2 - 100, 'Bonus Round', {
@@ -1197,10 +1216,10 @@ theGame.prototype = {
                     });
                     highScore.anchor.setTo(0.5, 0.5);
                     nextLevelSound.play();
-                    //this.sendToBonusRound();
+                    this.sendToBonusRound();
 
                     // add delay
-                    this.game.time.events.add(Phaser.Timer.SECOND * 2, this.sendToBonusRound(), this);
+                    //this.game.time.events.add(Phaser.Timer.SECOND * 2, this.sendToBonusRound(), this);
 
                 } else {
                     currentLevel += 1;
@@ -1211,7 +1230,6 @@ theGame.prototype = {
                     highScore.anchor.setTo(0.5, 0.5);
                     pause_label.events.onInputUp.removeAll();
 
-                    player.body.angularVelocity = 0;
 
                     // add delay
                     this.game.time.events.add(Phaser.Timer.SECOND * 2, this.restart, this);
@@ -1412,21 +1430,25 @@ theGame.prototype = {
      *******************************************************************************/
     nextLevel: function() {
 
-        rocksYouHit = 0; // reset rocks hit for this level
-        stars.removeAll();
-        rocks.removeAll();
-        trashPile.removeAll();
+        ball.kill();
+        paddle.kill();
+        bricks.removeAll();
+        livesText.destroy();
+        isGameSoundOn = true;
+        ballOnPaddle = true;
         timer.stop();
-        rockReleaseTimer.stop();
         if (healthLife) {
             healthLife.kill();
         }
-        this.createRocks();
-        this.createStars();
-        this.createTrash();
-        pause_label.events.onInputUp.add(this.pause, this);
+        if (highScore) {
+            highScore.destroy();
+        }
         this.startTimer();
-        rockTrackerUIText.text = rocksYouCollected + '/ ' + levelData.levelsData.levels[indexedLevel].rocksNeeded;
+        this.createBricks();
+        this.createPaddle();
+        this.createBall();
+        pause_label.events.onInputUp.add(this.pause, this);
+        //rockTrackerUIText.text = rocksYouCollected + '/ ' + levelData.levelsData.levels[indexedLevel].rocksNeeded;
     },
     /*******************************************************************************
      *
@@ -1434,19 +1456,28 @@ theGame.prototype = {
      *
      *******************************************************************************/
     sendToBonusRound: function() {
-        stars.removeAll();
-        rocks.removeAll();
-        trashPile.removeAll();
-        highScore.destroy();
+        
+        ball.kill();
+        paddle.kill();
+        bricks.removeAll();
+        livesText.destroy();
+        if (highScore) {
+            highScore.destroy();
+        }
         timer.stop();
-        rockReleaseTimer.stop();
-        trashReleaseTimer.stop();
         if (healthLife) {
             healthLife.kill();
         }
-        this.createTrash('bonus');
+        isGameSoundOn = true;
+        ballOnPaddle = true;
+
+        //this.createTrash('bonus');
         pause_label.events.onInputUp.add(this.pause, this);
         indicatedLevel.text = 'Bonus!';
+
+        this.createBricks('bonus');
+        this.createPaddle();
+        this.createBall();
 
         
         timerTotal = bonusLevelData.bonuslevelsData.levels[bonusLevel].timeLimit;
@@ -1853,6 +1884,7 @@ theGame.prototype = {
         //console.log(remainingStars.length);
     },
     updateCounter: function() {
+        
         timerTotal--;
         timerText.text = 'Time: ' + timerTotal;
 
@@ -1883,11 +1915,12 @@ theGame.prototype = {
             zoomTween.start();
         } else {
             timerText.fill = '#ffffff';
+
         }
     },
     startTimer: function() {
-        timerTotal = 50;
-        timerText.text = 'Time: ' + 50
+        timerTotal = levelData.levelsData.levels[indexedLevel].timeLimit;
+        timerText.text = 'Time: ' + timerTotal;
         //timerTotal = levelData.levelsData.levels[indexedLevel].timeLimit;
         //timerText.text = 'Time: ' + levelData.levelsData.levels[indexedLevel].timeLimit;
 
