@@ -7,9 +7,11 @@ An HTML5 game built with Phaser.js. Designed by [planlodge](http://planlodge.com
 
 ## Description
 
-> Jump your way through various levels grabbing as many stars as possible. Be careful! Rocks are known to meteors are known to fall in the area, make sure you don't get hit!
+> Don't freeze up! Enjoy this classic laid-back game, collect items and earn points. Take your time and enjoy the music.
 
 ## Features
+- Collect fun items that help your score
+- High Score Board
 - Multiple Levels
 - Bonus Level
 
